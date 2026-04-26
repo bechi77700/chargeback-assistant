@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Case {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Screen 1
+  orderNumber  String
+  disputeType  String   // 'inr' | 'inad' | 'fraud' | 'credit' | 'duplicate' | 'subscription' | 'general'
+  deadline     DateTime
+
+  // Screen 2 (filled progressively)
+  customerName     String?
+  customerEmail    String?
+  amount           Float?
+  orderDate        DateTime?
+  shipDate         DateTime?
+  trackingNumber   String?
+  packageStatus    String?  // 'delivered' | 'in_transit' | 'returned'
+  contactedSupport String?  // 'yes' | 'no' | 'unknown'
+
+  // Free-form additions used by templates
+  deliveryDate     DateTime?
+  latestScanDate   DateTime?
+  estimatedDate    DateTime?
+  deliveryZip      String?
+  billingAddress   String?
+  shippingAddress  String?
+  productDesc      String?
+  returnWindow     String?
+
+  // Screen 3 — JSON array of evidence items
+  evidence    String   @default("[]") // [{ key, label, checked, note, exhibit }]
+
+  // Screen 4
+  responseText String?
+
+  // Free-form internal notes (tracking column)
+  notes        String?
+
+  // Status
+  status   String   @default("draft") // 'draft' | 'submitted' | 'won' | 'lost'
+  step     Int      @default(1)       // last screen reached, for resume
+
+  submittedAt DateTime?
+  closedAt    DateTime?
+}
