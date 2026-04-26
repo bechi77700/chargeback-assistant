@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --accent: 168 85 247;        /* violet electric, RGB triplet */
-  --accent-dim: 124 58 237;
+  --accent: 4 120 87;        /* deep emerald, RGB triplet */
+  --accent-dim: 6 95 70;
 }
 
 * {
@@ -16,8 +16,8 @@ html, body {
 }
 
 body {
-  background-color: #000000;
-  color: #FAFAFA;
+  background-color: #FAFAF7;
+  color: #1A1818;
   font-family: var(--font-geist-sans), 'Inter', system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.5;
@@ -26,15 +26,15 @@ body {
   font-feature-settings: 'cv11', 'ss01';
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #0A0A0A; }
-::-webkit-scrollbar-thumb { background: #1F1F1F; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #2A2A2A; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #F1EFE9; }
+::-webkit-scrollbar-thumb { background: #D4D2CB; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #B8B5AD; }
 
-::selection { background: rgba(168, 85, 247, 0.35); color: #FAFAFA; }
+::selection { background: rgba(4, 120, 87, 0.22); color: #1A1818; }
 
 @layer components {
-  /* Primary CTA — violet with glow halo */
+  /* Primary CTA — emerald with soft elevation */
   .btn-primary {
     @apply px-4 py-2 bg-accent-violet text-white font-semibold text-sm rounded-lg
            shadow-glow-violet
@@ -44,8 +44,8 @@ body {
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-bg-elevated border border-bg-border text-text-secondary text-sm rounded-lg
-           hover:border-accent-violet/50 hover:text-text-primary hover:bg-bg-hover
+    @apply px-4 py-2 bg-bg-card border border-bg-border text-text-secondary text-sm rounded-lg
+           hover:border-accent-violet/50 hover:text-accent-violet hover:bg-bg-hover
            transition-all duration-150
            disabled:opacity-40 disabled:cursor-not-allowed;
   }
@@ -55,45 +55,45 @@ body {
            hover:bg-accent-red/10 transition-colors duration-150;
   }
 
-  /* Pill — Trendtrack-style filter chip */
+  /* Pill — neutral filter chip */
   .pill {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-           bg-bg-elevated border border-bg-border text-text-secondary
+           bg-bg-card border border-bg-border text-text-secondary
            hover:border-text-muted hover:text-text-primary
            transition-colors duration-150 cursor-pointer select-none;
   }
 
   .pill-active {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
-           bg-accent-violet/15 border border-accent-violet/50 text-accent-violet
+           bg-accent-violet/10 border border-accent-violet/40 text-accent-violet
            cursor-pointer select-none;
   }
 
   .input-field {
-    @apply w-full bg-bg-elevated border border-bg-border rounded-lg px-3 py-2
+    @apply w-full bg-bg-card border border-bg-border rounded-lg px-3 py-2
            text-text-primary text-sm placeholder-text-muted
            focus:outline-none focus:border-accent-violet/60 focus:ring-2 focus:ring-accent-violet/20
            transition-all duration-150;
   }
 
   .card {
-    @apply bg-bg-card border border-bg-border rounded-xl;
+    @apply bg-bg-card border border-bg-border rounded-xl shadow-sm;
   }
 
   .tag-active {
     @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold
-           bg-accent-violet/15 border border-accent-violet/50 text-accent-violet
+           bg-accent-violet/10 border border-accent-violet/40 text-accent-violet
            cursor-pointer select-none;
   }
 
   .tag-inactive {
     @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium
-           bg-bg-elevated border border-bg-border text-text-secondary
+           bg-bg-card border border-bg-border text-text-secondary
            hover:border-text-muted hover:text-text-primary
            cursor-pointer select-none transition-colors;
   }
 
-  /* Logo block — squared violet with letter mark */
+  /* Logo block — emerald with soft halo */
   .logo-mark {
     @apply w-7 h-7 rounded-md bg-accent-violet flex items-center justify-center
            text-white font-bold text-sm shadow-glow-violet;
@@ -106,7 +106,7 @@ body {
 }
 
 .shimmer {
-  background: linear-gradient(90deg, transparent 25%, rgba(168, 85, 247, 0.06) 50%, transparent 75%);
+  background: linear-gradient(90deg, transparent 25%, rgba(0, 0, 0, 0.05) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }

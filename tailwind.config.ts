@@ -1,14 +1,15 @@
 import type { Config } from 'tailwindcss';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Creative Suite — Trendtrack-inspired DA
-// Pure black backgrounds, violet electric accent (#A855F7), Geist typography.
-// Class names kept as `accent-gold` / `text-gold` to avoid touching every file
-// — they now map to violet. Use `accent-violet` going forward.
+// Chargeback Assistant — "Ledger" DA
+// Warm cream background (#FAFAF7), pure white cards, deep emerald accent
+// (#047857) for trust + recovered money. Geist typography. Soft shadows.
+// Token names preserved (accent-violet, accent-gold) so existing code keeps
+// working — they now resolve to emerald.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ACCENT = '#A855F7';      // violet electric
-const ACCENT_DIM = '#7C3AED';  // violet darker for hover
+const ACCENT = '#047857';      // deep emerald
+const ACCENT_DIM = '#065F46';  // emerald darker for hover
 
 const config: Config = {
   content: [
@@ -20,32 +21,31 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          base: '#000000',     // pure black
-          elevated: '#0A0A0A', // sidebar / surfaces
-          card: '#0F0F0F',     // cards
-          border: '#1F1F1F',   // hairline borders
-          hover: '#171717',    // hover backgrounds
+          base: '#FAFAF7',     // warm cream page bg
+          elevated: '#F1EFE9', // recessed surfaces (inputs, pills, sidebar)
+          card: '#FFFFFF',     // lifted cards
+          border: '#E5E2DA',   // hairline border
+          hover: '#EAE7DE',    // subtle hover bg
         },
         accent: {
-          // Legacy "gold" tokens — now mapped to violet so existing pages
-          // automatically get the new theme.
+          // Legacy "gold" + "violet" tokens — both map to emerald so existing
+          // pages automatically pick up the new DA without touching every file.
           gold: ACCENT,
           'gold-dim': ACCENT_DIM,
-          // New canonical name
           violet: ACCENT,
           'violet-dim': ACCENT_DIM,
-          blue: '#3B82F6',
+          blue: '#2563EB',
           'blue-dim': '#1D4ED8',
-          green: '#22C55E',
-          red: '#EF4444',
-          purple: '#8B5CF6',
+          green: '#15803D',
+          red: '#E11D48',
+          purple: '#7C3AED',
         },
         text: {
-          primary: '#FAFAFA',
-          secondary: '#D4D4D8',
-          muted: '#71717A',
-          gold: ACCENT, // legacy alias
-          violet: ACCENT,
+          primary: '#1A1818',
+          secondary: '#525050',
+          muted: '#9A9890',
+          gold: ACCENT,    // legacy alias
+          violet: ACCENT,  // legacy alias
         },
       },
       fontFamily: {
@@ -54,8 +54,9 @@ const config: Config = {
         display: ['var(--font-geist-sans)', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'glow-violet': '0 0 24px -4px rgba(168, 85, 247, 0.55), 0 0 48px -8px rgba(168, 85, 247, 0.25)',
-        'glow-violet-lg': '0 0 40px -4px rgba(168, 85, 247, 0.6), 0 0 80px -8px rgba(168, 85, 247, 0.3)',
+        // Soft elevation shadows (replace the violet glow halos)
+        'glow-violet': '0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px -2px rgba(4, 120, 87, 0.18)',
+        'glow-violet-lg': '0 2px 5px rgba(0, 0, 0, 0.06), 0 12px 32px -4px rgba(4, 120, 87, 0.26)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -78,8 +79,8 @@ const config: Config = {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         glowPulse: {
-          '0%, 100%': { boxShadow: '0 0 24px -4px rgba(168, 85, 247, 0.45)' },
-          '50%': { boxShadow: '0 0 40px -4px rgba(168, 85, 247, 0.7)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(4, 120, 87, 0.30)' },
+          '50%': { boxShadow: '0 0 0 6px rgba(4, 120, 87, 0)' },
         },
       },
     },
