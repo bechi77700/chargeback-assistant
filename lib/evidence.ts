@@ -66,8 +66,7 @@ const INR_EXTRA: EvidenceDef[] = [
     label: 'Shipping label from sourcing agent',
     howTo: `Contact your sourcing agent (WeChat, email, or wherever you communicate).
 1. Request the shipping label PDF for this order #
-2. Also screenshot the chat where the agent confirms shipment
-3. The label must show: tracking number, recipient address, dispatch date.`,
+2. The label must show: tracking number, recipient address, dispatch date.`,
   },
   {
     key: 'tracking_screenshot',
