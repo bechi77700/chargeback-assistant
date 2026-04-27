@@ -23,6 +23,16 @@ export default function EvidencePage({ params }: { params: { id: string } }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMissingConfirm, setShowMissingConfirm] = useState(false);
+  const [openHowTo, setOpenHowTo] = useState<Set<string>>(new Set());
+
+  function toggleHowTo(key: string) {
+    setOpenHowTo((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     fetch(`/api/cases/${params.id}`)
@@ -66,10 +76,6 @@ export default function EvidencePage({ params }: { params: { id: string } }) {
     setEvidence((prev) =>
       reassignExhibits(prev.map((e) => (e.key === key ? { ...e, checked: !e.checked } : e))),
     );
-  }
-
-  function setNote(key: string, note: string) {
-    setEvidence((prev) => prev.map((e) => (e.key === key ? { ...e, note } : e)));
   }
 
   async function persistAndAdvance() {
@@ -160,62 +166,79 @@ export default function EvidencePage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="space-y-2">
-          {orderedEvidence.map((item) => (
-            <div
-              key={item.key}
-              className={`card transition-colors ${
-                item.checked
-                  ? 'border-accent-violet/40'
-                  : item.priority === 'required'
-                  ? 'border-accent-red/30'
-                  : ''
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => toggle(item.key)}
-                className="w-full text-left px-4 py-3 flex items-start gap-3"
+          {orderedEvidence.map((item) => {
+            const isHowToOpen = openHowTo.has(item.key);
+            return (
+              <div
+                key={item.key}
+                className={`card transition-colors ${
+                  item.checked
+                    ? 'border-accent-violet/40'
+                    : item.priority === 'required'
+                    ? 'border-accent-red/30'
+                    : ''
+                }`}
               >
-                <div
-                  className={`mt-0.5 w-5 h-5 rounded-md flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
-                    item.checked
-                      ? 'bg-accent-violet border-accent-violet'
-                      : 'border-bg-border bg-bg-elevated'
-                  }`}
-                >
-                  {item.checked && (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <p className="text-text-primary text-sm font-medium leading-snug">{item.label}</p>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <PriorityBadge priority={item.priority} />
-                      {item.checked && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-violet/20 text-accent-violet">
-                          Exhibit {item.exhibit}
-                        </span>
-                      )}
+                <div className="flex items-start gap-3 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.key)}
+                    aria-label={item.checked ? 'Uncheck' : 'Check'}
+                    className={`mt-0.5 w-5 h-5 rounded-md flex-shrink-0 border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                      item.checked
+                        ? 'bg-accent-violet border-accent-violet'
+                        : 'border-bg-border bg-bg-elevated hover:border-accent-violet/60'
+                    }`}
+                  >
+                    {item.checked && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.key)}
+                    className="flex-1 min-w-0 text-left"
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <p className="text-text-primary text-sm font-medium leading-snug">{item.label}</p>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <PriorityBadge priority={item.priority} />
+                        {item.checked && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-violet/20 text-accent-violet">
+                            Exhibit {item.exhibit}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    {item.hint && <p className="text-text-muted text-xs mt-0.5">{item.hint}</p>}
+                  </button>
+                </div>
+
+                {/* How-to toggle + panel */}
+                {item.howTo && (
+                  <div className="px-4 pb-3 pl-12">
+                    <button
+                      type="button"
+                      onClick={() => toggleHowTo(item.key)}
+                      className="inline-flex items-center gap-1 text-xs text-accent-violet hover:underline focus:outline-none"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-3 h-3 transition-transform ${isHowToOpen ? 'rotate-90' : ''}`}>
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                      <span>{isHowToOpen ? 'Hide instructions' : 'How to get this document'}</span>
+                    </button>
+                    {isHowToOpen && (
+                      <div className="mt-2 px-3 py-2.5 rounded-lg bg-bg-elevated border border-bg-border text-text-secondary text-xs leading-relaxed whitespace-pre-line animate-fade-in">
+                        {item.howTo}
+                      </div>
+                    )}
                   </div>
-                  {item.hint && <p className="text-text-muted text-xs mt-0.5">{item.hint}</p>}
-                </div>
-              </button>
-              {item.checked && (
-                <div className="px-4 pb-3 pl-12">
-                  <input
-                    placeholder="Add tracking link, notes…"
-                    className="input-field text-xs"
-                    value={item.note}
-                    onChange={(e) => setNote(item.key, e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {error && (

@@ -35,7 +35,6 @@ model Case {
   billingAddress   String?
   shippingAddress  String?
   productDesc      String?
-  returnWindow     String?
 
   // Screen 3 — JSON array of evidence items
   evidence    String   @default("[]") // [{ key, label, checked, note, exhibit }]

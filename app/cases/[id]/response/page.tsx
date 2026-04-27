@@ -10,36 +10,78 @@ import { disputeEmoji, disputeLabel } from '@/lib/dispute-types';
 import { parseEvidence, isoToDateInput, type CaseRecord } from '@/lib/case-types';
 import { generateResponse } from '@/lib/templates';
 
-const FIELD_GROUPS: { title: string; fields: { id: keyof EditableExtras; label: string; type?: 'text' | 'date' }[]; types?: string[] }[] = [
+interface ExtraField {
+  id: keyof EditableExtras;
+  label: string;
+  hint?: string;        // small explainer below the label
+  placeholder?: string; // example value shown inside the input
+  type?: 'text' | 'date';
+}
+
+const FIELD_GROUPS: { title: string; fields: ExtraField[]; types?: string[] }[] = [
   {
     title: 'Delivery details',
     fields: [
-      { id: 'deliveryDate', label: 'Delivery date', type: 'date' },
-      { id: 'deliveryZip', label: 'Delivery ZIP / city' },
+      {
+        id: 'deliveryDate',
+        label: 'Delivery date',
+        hint: 'When the carrier marked the package "Delivered" — copy this exact date from the tracking page.',
+        type: 'date',
+      },
+      {
+        id: 'deliveryZip',
+        label: 'Carrier delivery location',
+        hint: 'The city + ZIP shown on the carrier tracking page (NOT the customer\'s full address). It must match the shipping address area.',
+        placeholder: 'e.g. Brooklyn, NY 11201',
+      },
     ],
     types: ['inr', 'inad', 'fraud'],
   },
   {
     title: 'In-transit details',
     fields: [
-      { id: 'latestScanDate', label: 'Latest scan date', type: 'date' },
-      { id: 'estimatedDate', label: 'Estimated delivery', type: 'date' },
+      {
+        id: 'latestScanDate',
+        label: 'Latest scan date',
+        hint: 'Date of the most recent tracking event (e.g. "Out for delivery", "In transit").',
+        type: 'date',
+      },
+      {
+        id: 'estimatedDate',
+        label: 'Estimated delivery date',
+        hint: 'ETA shown by the carrier on the tracking page.',
+        type: 'date',
+      },
     ],
     types: ['inr'],
   },
   {
     title: 'Fraud details',
     fields: [
-      { id: 'billingAddress', label: 'Billing address' },
-      { id: 'shippingAddress', label: 'Shipping address' },
+      {
+        id: 'billingAddress',
+        label: 'Billing address',
+        hint: 'Address linked to the cardholder\'s payment method (in Shopify Admin → Order → Billing address card).',
+        placeholder: 'Street, City, State ZIP, Country',
+      },
+      {
+        id: 'shippingAddress',
+        label: 'Shipping address',
+        hint: 'Address the customer entered at checkout (in Shopify Admin → Order → Shipping address card).',
+        placeholder: 'Street, City, State ZIP, Country',
+      },
     ],
     types: ['fraud'],
   },
   {
     title: 'Product details',
     fields: [
-      { id: 'productDesc', label: 'Brief product description' },
-      { id: 'returnWindow', label: 'Return window (days)' },
+      {
+        id: 'productDesc',
+        label: 'Brief product description',
+        hint: 'One short sentence describing what the customer ordered, as listed on your store. Used in the rebuttal text.',
+        placeholder: 'e.g. Black wireless earbuds, model X-200',
+      },
     ],
     types: ['inad'],
   },
@@ -53,7 +95,6 @@ interface EditableExtras {
   billingAddress: string;
   shippingAddress: string;
   productDesc: string;
-  returnWindow: string;
 }
 
 const EMPTY_EXTRAS: EditableExtras = {
@@ -64,7 +105,6 @@ const EMPTY_EXTRAS: EditableExtras = {
   billingAddress: '',
   shippingAddress: '',
   productDesc: '',
-  returnWindow: '',
 };
 
 export default function ResponsePage({ params }: { params: { id: string } }) {
@@ -94,7 +134,6 @@ export default function ResponsePage({ params }: { params: { id: string } }) {
           billingAddress: data.billingAddress ?? '',
           shippingAddress: data.shippingAddress ?? '',
           productDesc: data.productDesc ?? '',
-          returnWindow: data.returnWindow ?? '',
         };
         setExtras(ex);
         // Use saved responseText if present, otherwise generate fresh
@@ -168,7 +207,6 @@ export default function ResponsePage({ params }: { params: { id: string } }) {
           billingAddress: extras.billingAddress,
           shippingAddress: extras.shippingAddress,
           productDesc: extras.productDesc,
-          returnWindow: extras.returnWindow,
           responseText,
           status: 'submitted',
           step: Math.max(c?.step ?? 1, 5),
@@ -333,7 +371,6 @@ function buildResponse(c: CaseRecord, extras: EditableExtras): string {
       billingAddress: extras.billingAddress || c.billingAddress,
       shippingAddress: extras.shippingAddress || c.shippingAddress,
       productDesc: extras.productDesc || c.productDesc,
-      returnWindow: extras.returnWindow || c.returnWindow,
     },
     evidence,
   );

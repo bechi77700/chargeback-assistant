@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const STRING_FIELDS = [
     'orderNumber', 'customerName', 'customerEmail', 'trackingNumber',
     'packageStatus', 'contactedSupport', 'deliveryZip', 'billingAddress',
-    'shippingAddress', 'productDesc', 'returnWindow', 'responseText',
+    'shippingAddress', 'productDesc', 'responseText',
     'notes', 'status',
   ] as const;
 

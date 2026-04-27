@@ -3,17 +3,19 @@
 import { useEffect, useState } from 'react';
 
 const DOS = [
-  'Respond within 5 business days',
+  'Always fight every chargeback — no preemptive refunds',
+  'Respond within 5 business days of receiving the dispute',
   'Contact sourcing agent same day for shipping docs',
-  'Wait for delivery confirmation before responding (INR)',
+  'Wait for delivery confirmation before responding (INR / Fraud)',
   'Be factual and professional',
-  'Name exhibit files clearly',
+  'Name exhibit files clearly (Exhibit A, B, C…)',
 ];
 
 const DONTS = [
   'Ignore any dispute — unanswered = automatic loss',
-  'Admit fault or offer refund in the response',
-  'Submit INR without delivery proof if deadline allows',
+  'Admit fault or offer a refund in the response',
+  'Mention return windows, refund deadlines, or policy timeframes',
+  'Submit INR without delivery proof if the deadline allows waiting',
   'Upload out-of-order exhibit files',
   'Close a case without logging the outcome',
 ];

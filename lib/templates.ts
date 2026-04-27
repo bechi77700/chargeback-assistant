@@ -19,7 +19,6 @@ export interface CaseLike {
   billingAddress: string | null;
   shippingAddress: string | null;
   productDesc: string | null;
-  returnWindow: string | null;
 }
 
 const fmtDate = (v: Date | string | null | undefined): string => {
@@ -59,7 +58,6 @@ export function generateResponse(c: CaseLike, evidence: EvidenceItem[]): string 
   const billing = fallback(c.billingAddress, '[BILLING ADDRESS]');
   const shipping = fallback(c.shippingAddress, '[SHIPPING ADDRESS]');
   const productDesc = fallback(c.productDesc, '[BRIEF PRODUCT DESCRIPTION]');
-  const returnWindow = fallback(c.returnWindow, '[X]');
   const evList = evidenceList(evidence);
 
   // INR — In transit
@@ -114,9 +112,9 @@ The item delivered fully matches what was advertised on our store.
 
 As shown in our product listing screenshot, the item is described as ${productDesc}. The photos, dimensions, and specifications shown match the product that was shipped.
 
-The item was delivered on ${deliveryDate} per carrier tracking. We received no prior complaint, return request, or photo evidence demonstrating a discrepancy before this dispute was filed.
+The item was delivered on ${deliveryDate} per carrier tracking. We received no prior complaint, photo, or video from the customer demonstrating any discrepancy with the product shipped.
 
-Our return policy allows customers to contact us within ${returnWindow} days of delivery. The customer did not reach out, which prevented us from resolving this directly.
+The customer did not contact our support team before filing this dispute. Had they done so, we would have addressed the concern directly.
 
 Evidence submitted:
 ${evList}
@@ -150,11 +148,11 @@ We respectfully request that this chargeback be ruled in our favor.`;
 
 We are writing to contest this chargeback filed by ${customer} for Order #${order} placed on ${orderDate} for $${amount}.
 
-Our records show no return was received and no refund was due under the terms accepted at checkout.
+The order was fulfilled in full and our records show no return was received from the customer.
 
-Our refund policy requires the customer to initiate a return through our support channel before any credit is issued. We have no record of such a request from this customer prior to this dispute.
+We have no record of any refund request from the customer through our support channels (email, live chat, or help desk) prior to this dispute being filed.
 
-We remain willing to process any approved return through our standard policy. The customer did not contact our support team before filing this dispute, which prevented us from resolving this directly.
+Without a prior return or refund request on file, no credit was due. The customer did not contact our support team before filing this dispute.
 
 Evidence submitted:
 ${evList}

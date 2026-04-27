@@ -24,7 +24,6 @@ export interface CaseRecord {
   billingAddress: string | null;
   shippingAddress: string | null;
   productDesc: string | null;
-  returnWindow: string | null;
 
   evidence: string; // JSON string of EvidenceItem[]
   responseText: string | null;
