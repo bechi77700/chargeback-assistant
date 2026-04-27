@@ -262,10 +262,14 @@ export default function ResponsePage({ params }: { params: { id: string } }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {group.fields.map((f) => (
                     <div key={f.id}>
-                      <label className="block text-text-secondary text-xs font-medium mb-1.5">{f.label}</label>
+                      <label className="block text-text-primary text-xs font-medium">{f.label}</label>
+                      {f.hint && (
+                        <p className="text-text-muted text-[11px] leading-snug mt-0.5 mb-1.5">{f.hint}</p>
+                      )}
                       <input
                         type={f.type ?? 'text'}
-                        className="input-field"
+                        className={`input-field ${f.hint ? '' : 'mt-1.5'}`}
+                        placeholder={f.placeholder}
                         value={extras[f.id]}
                         onChange={(e) => setExtras((prev) => ({ ...prev, [f.id]: e.target.value }))}
                       />
