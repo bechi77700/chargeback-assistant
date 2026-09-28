@@ -7,10 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Shop {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String   @unique
+  color     String?  // hex, picked at creation so each shop gets a distinct color
+  cases     Case[]
+}
+
 model Case {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Store the chargeback came from. Nullable so cases created before shops
+  // existed keep working until they're assigned from the dashboard.
+  shopId    String?
+  shop      Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
 
   // Screen 1
   orderNumber  String
@@ -51,4 +64,6 @@ model Case {
 
   submittedAt DateTime?
   closedAt    DateTime?
+
+  @@index([shopId])
 }

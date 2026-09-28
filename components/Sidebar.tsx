@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { NO_SHOP, SHOPS_CHANGED_EVENT, notifyShopsChanged, shopColor, type ShopsResponse } from '@/lib/shops';
 
 const Icon = {
   dashboard: (
@@ -18,9 +19,11 @@ const Icon = {
       <path d="M12 5v14M5 12h14" />
     </svg>
   ),
-  list: (
+  store: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+      <path d="M3 9l1.5-5h15L21 9" />
+      <path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9z" />
+      <path d="M5 14v6h14v-6" />
     </svg>
   ),
 };
@@ -32,17 +35,41 @@ interface NavItem {
   matchExact?: boolean;
 }
 
-const navItems: NavItem[] = [
-  { href: '/', label: 'Dashboard', icon: Icon.dashboard, matchExact: true },
-  { href: '/new', label: 'New Dispute', icon: Icon.plus, matchExact: true },
-  { href: '/cases', label: 'All Cases', icon: Icon.list },
-];
-
 export default function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
+  const [shopData, setShopData] = useState<ShopsResponse | null>(null);
 
-  useEffect(() => { setOpen(false); }, [pathname]);
+  const onDashboard = pathname === '/' || pathname === '/cases';
+  // Shop currently in focus — carried over to "New Dispute" so it's preselected.
+  const currentShop = searchParams.get('shop');
+
+  const loadShops = useCallback(() => {
+    fetch('/api/shops')
+      .then((r) => r.json())
+      .then((d: ShopsResponse) => setShopData(d))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadShops();
+    window.addEventListener(SHOPS_CHANGED_EVENT, loadShops);
+    return () => window.removeEventListener(SHOPS_CHANGED_EVENT, loadShops);
+  }, [loadShops]);
+
+  const navItems: NavItem[] = [
+    { href: '/', label: 'Dashboard', icon: Icon.dashboard },
+    {
+      href: currentShop && currentShop !== NO_SHOP ? `/new?shop=${currentShop}` : '/new',
+      label: 'New Dispute',
+      icon: Icon.plus,
+      matchExact: true,
+    },
+    { href: '/shops', label: 'Manage shops', icon: Icon.store, matchExact: true },
+  ];
+
+  useEffect(() => { setOpen(false); }, [pathname, currentShop]);
 
   useEffect(() => {
     if (!open) return;
@@ -104,13 +131,43 @@ export default function Sidebar() {
         <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5">
           <Section label="Workspace">
             {navItems.map((item) => {
-              const active = item.matchExact
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
+              const path = item.href.split('?')[0];
+              const active = path === '/'
+                ? onDashboard
+                : item.matchExact ? pathname === path : pathname.startsWith(path);
               return (
-                <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} active={active} />
+                <NavLink key={item.label} href={item.href} icon={item.icon} label={item.label} active={active} />
               );
             })}
+          </Section>
+
+          <Section label="Shops">
+            <ShopLink
+              href="/"
+              label="All shops"
+              active={onDashboard && !currentShop}
+            />
+            {shopData?.shops.map((s) => (
+              <ShopLink
+                key={s.id}
+                href={`/?shop=${s.id}`}
+                label={s.name}
+                color={shopColor(s)}
+                count={s.pendingCount}
+                active={onDashboard && currentShop === s.id}
+              />
+            ))}
+            {!!shopData?.unassignedCount && (
+              <ShopLink
+                href={`/?shop=${NO_SHOP}`}
+                label="No shop"
+                count={shopData.unassignedCount}
+                countTitle="disputes without a shop"
+                active={onDashboard && currentShop === NO_SHOP}
+                muted
+              />
+            )}
+            <AddShop />
           </Section>
         </div>
 
@@ -130,6 +187,125 @@ function Section({ label, children }: { label: string; children: React.ReactNode
       </div>
       <div className="space-y-0.5">{children}</div>
     </div>
+  );
+}
+
+function AddShop() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function close() {
+    setOpen(false);
+    setName('');
+    setError(null);
+  }
+
+  async function submit() {
+    const trimmed = name.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch('/api/shops', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? 'Could not add shop');
+      return;
+    }
+    close();
+    notifyShopsChanged();
+    router.push(`/?shop=${data.id}`);
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm text-text-muted hover:text-accent-violet hover:bg-bg-hover transition-colors"
+      >
+        <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-3.5 h-3.5">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+        <span className="font-medium">Add shop</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="px-1 pt-1">
+      <input
+        className="input-field py-1.5"
+        placeholder="Shop name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit();
+          if (e.key === 'Escape') close();
+        }}
+        autoFocus
+      />
+      {error && <p className="text-accent-red text-[11px] mt-1 px-1">{error}</p>}
+      <div className="flex gap-1.5 mt-1.5">
+        <button onClick={close} className="btn-secondary flex-1 text-xs px-2 py-1">Cancel</button>
+        <button onClick={submit} disabled={!name.trim() || busy} className="btn-primary flex-1 text-xs px-2 py-1">
+          {busy ? 'Adding…' : 'Add'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ShopLink({
+  href,
+  label,
+  active,
+  color,
+  count,
+  countTitle = 'pending disputes',
+  muted,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  color?: string;
+  count?: number;
+  countTitle?: string;
+  muted?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-colors duration-150 ${
+        active
+          ? 'bg-accent-violet/10 text-accent-violet'
+          : muted
+            ? 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
+            : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'
+      }`}
+    >
+      <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+        {color ? (
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+        ) : (
+          <span className={`w-2 h-2 rounded-full border ${muted ? 'border-dashed border-text-muted' : 'border-current'}`} />
+        )}
+      </span>
+      <span className="font-medium truncate flex-1">{label}</span>
+      {!!count && (
+        <span title={`${count} ${countTitle}`} className="text-[10px] font-semibold text-text-muted tabular-nums">
+          {count}
+        </span>
+      )}
+    </Link>
   );
 }
 

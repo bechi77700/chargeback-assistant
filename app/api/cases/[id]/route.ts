@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { defaultEvidenceFor, reassignExhibits } from '@/lib/evidence';
 import type { DisputeType } from '@/lib/dispute-types';
+import { SHOP_REF_SELECT } from '@/lib/shops';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const c = await prisma.case.findUnique({ where: { id: params.id } });
+  const c = await prisma.case.findUnique({
+    where: { id: params.id },
+    include: { shop: { select: SHOP_REF_SELECT } },
+  });
   if (!c) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(c);
 }
@@ -53,6 +57,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data.evidence = JSON.stringify(reassignExhibits(items));
   }
 
+  if ('shopId' in body) {
+    data.shopId = body.shopId || null;
+  }
+
   if ('step' in body && typeof body.step === 'number') {
     data.step = body.step;
   }
@@ -65,7 +73,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data.closedAt = new Date();
   }
 
-  const updated = await prisma.case.update({ where: { id: params.id }, data });
+  const updated = await prisma.case.update({
+    where: { id: params.id },
+    data,
+    include: { shop: { select: SHOP_REF_SELECT } },
+  });
   return NextResponse.json(updated);
 }
 

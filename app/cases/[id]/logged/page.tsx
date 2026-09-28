@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import StepIndicator from '@/components/StepIndicator';
 import DeadlinePill from '@/components/DeadlinePill';
+import ShopBadge from '@/components/ShopBadge';
 import { disputeEmoji, disputeLabel } from '@/lib/dispute-types';
 import { parseEvidence, type CaseRecord } from '@/lib/case-types';
 
@@ -74,6 +75,10 @@ export default function LoggedPage({ params }: { params: { id: string } }) {
 
         {/* Summary card */}
         <div className="card p-5 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-text-muted text-sm">Shop</span>
+            <ShopBadge shop={c.shop} />
+          </div>
           <Row label="Order #" value={`#${c.orderNumber}`} mono />
           <Row label="Dispute type" value={`${disputeEmoji(c.disputeType)} ${disputeLabel(c.disputeType)}`} />
           <Row label="Amount" value={c.amount != null ? `$${c.amount.toFixed(2)}` : '—'} mono />
@@ -150,8 +155,10 @@ export default function LoggedPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="flex flex-wrap justify-center gap-3 mt-8">
-          <Link href="/" className="btn-secondary">View All Cases</Link>
-          <Link href="/new" className="btn-primary">+ New Dispute</Link>
+          <Link href={c.shopId ? `/?shop=${c.shopId}` : '/'} className="btn-secondary">
+            {c.shop ? `View ${c.shop.name} cases` : 'View All Cases'}
+          </Link>
+          <Link href={c.shopId ? `/new?shop=${c.shopId}` : '/new'} className="btn-primary">+ New Dispute</Link>
         </div>
       </div>
     </AppShell>

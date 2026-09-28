@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import StepIndicator from '@/components/StepIndicator';
 import DeadlinePill from '@/components/DeadlinePill';
+import ShopBadge from '@/components/ShopBadge';
 import { disputeEmoji, disputeLabel } from '@/lib/dispute-types';
 import { isoToDateInput, type CaseRecord } from '@/lib/case-types';
 
@@ -124,7 +125,8 @@ export default function DetailsPage({ params }: { params: { id: string } }) {
 
         {/* Case header */}
         <div className="card px-4 py-3 mb-6 flex flex-wrap items-center gap-3 justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <ShopBadge shop={c?.shop} />
             <div className="text-text-primary font-semibold">#{c?.orderNumber}</div>
             <span className="text-text-secondary text-sm">
               {disputeEmoji(c!.disputeType)} {disputeLabel(c!.disputeType)}

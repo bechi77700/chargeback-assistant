@@ -1,4 +1,5 @@
 import type { EvidenceItem } from './evidence';
+import type { ShopRef } from './shops';
 
 export interface CaseRecord {
   id: string;
@@ -7,6 +8,9 @@ export interface CaseRecord {
   orderNumber: string;
   disputeType: string;
   deadline: string;
+
+  shopId: string | null;
+  shop?: ShopRef | null;
 
   customerName: string | null;
   customerEmail: string | null;

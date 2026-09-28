@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import DeadlinePill from '@/components/DeadlinePill';
+import ShopBadge from '@/components/ShopBadge';
+import {
+  NO_SHOP, SHOPS_CHANGED_EVENT, notifyShopsChanged, shopColor,
+  type ShopRef, type ShopSummary, type ShopsResponse,
+} from '@/lib/shops';
 import { disputeEmoji } from '@/lib/dispute-types';
 import {
   evidenceLine,
@@ -18,6 +24,8 @@ interface Case {
   orderNumber: string;
   disputeType: string;
   deadline: string;
+  shopId: string | null;
+  shop: ShopRef | null;
   status: string;
   step: number;
   amount: number | null;
@@ -51,7 +59,18 @@ const OUTCOME_PILL: Record<'Pending' | 'Won' | 'Lost', string> = {
 };
 
 export default function Dashboard() {
+  // useSearchParams needs a Suspense boundary in the app router
+  return (
+    <Suspense fallback={null}>
+      <DashboardView />
+    </Suspense>
+  );
+}
+
+function DashboardView() {
+  const shopParam = useSearchParams().get('shop');
   const [cases, setCases] = useState<Case[]>([]);
+  const [shops, setShops] = useState<ShopSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<OutcomeFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('deadline');
@@ -60,13 +79,34 @@ export default function Dashboard() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetch('/api/cases')
+    setLoading(true);
+    const qs = shopParam ? `?shop=${encodeURIComponent(shopParam)}` : '';
+    fetch(`/api/cases${qs}`)
       .then((r) => r.json())
       .then((data) => {
         setCases(data);
         setLoading(false);
       });
+  }, [shopParam]);
+
+  useEffect(() => {
+    const load = () =>
+      fetch('/api/shops')
+        .then((r) => r.json())
+        .then((d: ShopsResponse) => setShops(d.shops));
+    load();
+    window.addEventListener(SHOPS_CHANGED_EVENT, load);
+    return () => window.removeEventListener(SHOPS_CHANGED_EVENT, load);
   }, []);
+
+  // A specific shop is in focus (vs. "All shops" or "No shop")
+  const currentShop = shopParam && shopParam !== NO_SHOP
+    ? shops.find((s) => s.id === shopParam) ?? null
+    : null;
+  // Show the Shop column (and allow reassigning) whenever the view mixes shops
+  const showShopColumn = !shopParam || shopParam === NO_SHOP;
+  const unassignedCount = cases.filter((c) => !c.shopId).length;
+  const newDisputeHref = currentShop ? `/new?shop=${currentShop.id}` : '/new';
 
   // ── Stats ────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -127,8 +167,13 @@ export default function Dashboard() {
       body: JSON.stringify(patch),
     });
     if (res.ok) {
-      const updated = await res.json();
-      setCases((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      const updated: Case = await res.json();
+      setCases((prev) =>
+        shopParam === NO_SHOP && updated.shopId
+          ? prev.filter((c) => c.id !== id) // just got a shop → leaves the "No shop" view
+          : prev.map((c) => (c.id === id ? updated : c)),
+      );
+      notifyShopsChanged();
     }
   }
 
@@ -142,7 +187,10 @@ export default function Dashboard() {
     setDeleting(true);
     const id = confirmDelete.id;
     const res = await fetch(`/api/cases/${id}`, { method: 'DELETE' });
-    if (res.ok) setCases((prev) => prev.filter((c) => c.id !== id));
+    if (res.ok) {
+      setCases((prev) => prev.filter((c) => c.id !== id));
+      notifyShopsChanged();
+    }
     setDeleting(false);
     setConfirmDelete(null);
   }
@@ -150,9 +198,10 @@ export default function Dashboard() {
   // ── CSV export ───────────────────────────────────────────────────────────
   function exportCsv() {
     const rows = [
-      ['Order #', 'Dispute type', 'Date opened', 'Response deadline', 'Date responded',
+      ['Shop', 'Order #', 'Dispute type', 'Date opened', 'Response deadline', 'Date responded',
        'Package status', 'Evidence submitted', 'Outcome', 'Amount', 'Notes'],
       ...visibleCases.map((c) => [
+        c.shop?.name ?? '',
         c.orderNumber,
         shortDisputeLabel(c.disputeType),
         fmtShortDate(c.createdAt),
@@ -175,7 +224,10 @@ export default function Dashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `chargebacks-${new Date().toISOString().slice(0, 10)}.csv`;
+    const scope = currentShop
+      ? currentShop.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      : shopParam === NO_SHOP ? 'no-shop' : 'all-shops';
+    a.download = `chargebacks-${scope}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -188,13 +240,32 @@ export default function Dashboard() {
           <p className="text-accent-violet text-xs font-semibold uppercase tracking-widest mb-2">
             ● Dispute desk
           </p>
-          <h1 className="text-text-primary text-3xl md:text-4xl font-bold tracking-tight">
-            Tracking sheet
+          <h1 className="text-text-primary text-3xl md:text-4xl font-bold tracking-tight flex items-center gap-3">
+            {currentShop && (
+              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: shopColor(currentShop) }} />
+            )}
+            {currentShop ? currentShop.name : shopParam === NO_SHOP ? 'Disputes without a shop' : 'All shops'}
           </h1>
           <p className="text-text-muted mt-2">
-            Every dispute, every column. Click a row to resume the case, edit notes inline, or change the outcome.
+            {currentShop
+              ? `Only disputes from ${currentShop.name}. Switch shop from the sidebar.`
+              : shopParam === NO_SHOP
+                ? 'These disputes were logged before shops existed. Pick their shop in the Shop column.'
+                : 'Every dispute across all your shops. Pick a shop in the sidebar to focus on it.'}
           </p>
         </div>
+
+        {!shopParam && !loading && unassignedCount > 0 && (
+          <Link
+            href={`/?shop=${NO_SHOP}`}
+            className="flex items-center justify-between gap-3 mb-6 px-4 py-3 rounded-xl border border-orange-500/40 bg-orange-500/10 text-orange-700 text-sm hover:bg-orange-500/15 transition-colors"
+          >
+            <span>
+              ⚠️ {unassignedCount} dispute{unassignedCount > 1 ? 's have' : ' has'} no shop yet — assign {unassignedCount > 1 ? 'them' : 'it'} so you know where each chargeback comes from.
+            </span>
+            <span className="font-semibold whitespace-nowrap">Review →</span>
+          </Link>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -222,7 +293,7 @@ export default function Dashboard() {
             <button onClick={exportCsv} disabled={visibleCases.length === 0} className="btn-secondary text-sm">
               ↓ Export CSV
             </button>
-            <Link href="/new" className="btn-primary text-sm">+ New Dispute</Link>
+            <Link href={newDisputeHref} className="btn-primary text-sm">+ New Dispute</Link>
           </div>
         </div>
 
@@ -233,13 +304,15 @@ export default function Dashboard() {
           <div className="card p-12 text-center">
             <div className="logo-mark mx-auto mb-4 w-12 h-12 text-base">CB</div>
             <p className="text-text-primary font-medium">
-              {filter === 'all' ? 'No disputes yet' : `No ${filter} disputes`}
+              {shopParam === NO_SHOP && filter === 'all'
+                ? 'Every dispute has a shop ✓'
+                : filter === 'all' ? 'No disputes yet' : `No ${filter} disputes`}
             </p>
             <p className="text-text-muted text-sm mt-1">
               {filter === 'all' ? 'Start a new dispute to begin.' : 'Adjust the filter to see other cases.'}
             </p>
             {filter === 'all' && (
-              <Link href="/new" className="btn-primary inline-block mt-5">+ New Dispute</Link>
+              <Link href={newDisputeHref} className="btn-primary inline-block mt-5">+ New Dispute</Link>
             )}
           </div>
         ) : (
@@ -247,6 +320,7 @@ export default function Dashboard() {
             <table className="w-full text-sm border-collapse">
               <thead className="bg-bg-elevated/60 border-b border-bg-border sticky top-0 z-10">
                 <tr className="text-left text-text-muted text-[11px] uppercase tracking-widest">
+                  {showShopColumn && <th className="px-3 py-2.5 font-medium">Shop</th>}
                   <Th label="Order #" sortKey="orderNumber" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <Th label="Dispute type" sortKey="disputeType" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <Th label="Date opened" sortKey="createdAt" current={sortKey} dir={sortDir} onSort={toggleSort} />
@@ -268,6 +342,15 @@ export default function Dashboard() {
                       key={c.id}
                       className="border-b border-bg-border last:border-b-0 hover:bg-bg-hover/40 transition-colors group"
                     >
+                      {showShopColumn && (
+                        <td className="px-3 py-2.5 align-top whitespace-nowrap">
+                          <ShopSelect
+                            value={c.shop}
+                            shops={shops}
+                            onChange={(shopId) => patchCase(c.id, { shopId })}
+                          />
+                        </td>
+                      )}
                       <td className="px-3 py-2.5 align-top whitespace-nowrap">
                         <Link href={resumeHref(c)} className="text-text-primary font-semibold font-mono hover:text-accent-violet">
                           #{c.orderNumber}
@@ -336,7 +419,8 @@ export default function Dashboard() {
                   <h3 className="text-text-primary font-semibold">Delete this case?</h3>
                   <p className="text-text-muted text-sm mt-1">
                     Order <span className="text-text-primary font-mono">#{confirmDelete.orderNumber}</span>
-                    {' '}— {shortDisputeLabel(confirmDelete.disputeType)}.
+                    {' '}— {shortDisputeLabel(confirmDelete.disputeType)}
+                    {confirmDelete.shop ? ` · ${confirmDelete.shop.name}` : ''}.
                   </p>
                   <p className="text-text-muted text-xs mt-2">
                     This permanently removes the case and its evidence. Cannot be undone.
@@ -436,6 +520,33 @@ function OutcomeSelect({
       >
         <path d="m6 9 6 6 6-6" />
       </svg>
+    </div>
+  );
+}
+
+function ShopSelect({
+  value, shops, onChange,
+}: {
+  value: ShopRef | null;
+  shops: ShopSummary[];
+  onChange: (shopId: string | null) => void;
+}) {
+  return (
+    <div className="relative inline-block">
+      <ShopBadge shop={value} size="xs" />
+      {/* Invisible native select on top of the badge — keeps the look, adds the picker */}
+      <select
+        aria-label="Change shop"
+        title="Change shop"
+        value={value?.id ?? ''}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      >
+        {!value && <option value="">— Pick a shop —</option>}
+        {shops.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+      </select>
     </div>
   );
 }
